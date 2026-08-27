@@ -1,6 +1,6 @@
-manifest_version: 2
+manifest_version: 1
 name: tempo_payments
-version: 0.1.0
+version: 0.1.1
 description: "Tempo Wallet onboarding and payment-aware HTTP 402 requests for Hermes agents using the official Tempo Wallet CLI and MPP."
 author: "Wundercorp"
 kind: standalone
@@ -10,10 +10,3 @@ platforms:
 provides_tools:
   - tempo_wallet_status
   - tempo_request
-license: MIT
-homepage: https://github.com/wundercorp/hermes-tempo-pay
-tags:
-  - payments
-  - tempo
-  - mpp
-  - wallet

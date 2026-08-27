@@ -33,15 +33,6 @@ if ! gh auth status --hostname github.com >/dev/null 2>&1; then
   fail "GitHub CLI is not authenticated. Run: gh auth login"
 fi
 
-secret_match="$(
-  find "$SOURCE_DIRECTORY" -type f \
-    \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'id_rsa' -o -name 'id_ed25519' -o -name 'credentials.json' \) \
-    -not -path '*/.git/*' -print -quit
-)"
-if [[ -n "$secret_match" ]]; then
-  fail "refusing to publish possible secret file: $secret_match"
-fi
-
 find "$SOURCE_DIRECTORY" -type d \( -name '__pycache__' -o -name '.pytest_cache' \) -prune -exec rm -rf {} + 2>/dev/null || true
 find "$SOURCE_DIRECTORY" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete 2>/dev/null || true
 
@@ -68,6 +59,17 @@ if [[ -z "$(git -C "$SOURCE_DIRECTORY" config --get user.email || true)" ]]; the
 fi
 
 git -C "$SOURCE_DIRECTORY" add -A
+
+staged_secret="$({
+  git -C "$SOURCE_DIRECTORY" diff --cached --name-only --diff-filter=ACMR
+  if ! git -C "$SOURCE_DIRECTORY" rev-parse --verify HEAD >/dev/null 2>&1; then
+    git -C "$SOURCE_DIRECTORY" ls-files
+  fi
+} | sort -u | grep -E '(^|/)(\.env($|\.)|credentials\.json$|id_rsa$|id_ed25519$)|\.(pem|key)$' | head -n 1 || true)"
+if [[ -n "$staged_secret" ]]; then
+  git -C "$SOURCE_DIRECTORY" reset --quiet -- "$staged_secret" || true
+  fail "refusing to publish staged possible secret file: $staged_secret"
+fi
 
 if ! git -C "$SOURCE_DIRECTORY" rev-parse --verify HEAD >/dev/null 2>&1; then
   git -C "$SOURCE_DIRECTORY" commit -m "Initial release: Hermes Tempo Pay"
